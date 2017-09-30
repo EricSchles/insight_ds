@@ -2,33 +2,16 @@
 # @Author: C. Marcus Chuang
 # @Date:   2017-09-27 17:37:31
 # @Last Modified by:   C. Marcus Chuang
-# @Last Modified time: 2017-09-27 18:24:09
+# @Last Modified time: 2017-09-28 23:24:16
 
 from __future__ import division
 import pandas as pd
-
-non_crop = ['Grassland/Pasture', 'Evergreen_Forest', 'Shrubland',
-            'Fallow/Idle_Cropland', 'Open_Water', 'Woody_Wetlands', 'Barren',
-            'NoData', 'Herbaceous_Wetlands', 'Developed/Low_Intensity',
-            'Developed/Open_Space', 'Sod/Grass_Seed',
-            'Developed/Med_Intensity', 'Deciduous_Forest']
-
-crops = ['Winter_Wheat', 'Spring_Wheat', 'Durum_Wheat', 'Alfalfa', 'Barley',
-         'Peas', 'Corn', 'Other_Hay/Non_Alfalfa', 'Lentils', 'Canola',
-         'Dry_Beans', 'Sugarbeets', 'Mustard', "Triticale", 'Potatoes',
-         'Safflower', 'Other_Small_Grains', 'Flaxseed', 'Oats', 'Millet',
-         'Soybeans']
-
-non_crop_names = set(s.lower() for s in non_crop)
-crop_names = set(s.lower() for s in crops)
-
-# code_name = pd.read_csv("./data/cdl_codes_names.csv")
 
 
 class CodeMapper(object):
     """
     mapping codes and names of land cover types.
-    All name are in lower cases.
+    All names are in lower cases.
     Explanation of the code names can be found here:
     https://www.nass.usda.gov/Research_and_Science/Cropland/metadata/metadata_mt15.htm
 
@@ -60,7 +43,7 @@ class CodeMapper(object):
                 name = name.lower()
                 self.c_to_name[code] = name
                 self.name_to_c[name] = code
-            except:  # name == NaN
+            except AttributeError:  # name == NaN
                 pass
         return
 
@@ -145,6 +128,21 @@ class CodeMapper(object):
         """
         return self.get_name(code) in crop_names
 
+
+non_crop = ['Grassland/Pasture', 'Evergreen_Forest', 'Shrubland',
+            'Fallow/Idle_Cropland', 'Open_Water', 'Woody_Wetlands', 'Barren',
+            'NoData', 'Herbaceous_Wetlands', 'Developed/Low_Intensity',
+            'Developed/Open_Space', 'Sod/Grass_Seed',
+            'Developed/Med_Intensity', 'Deciduous_Forest']
+
+crops = ['Winter_Wheat', 'Spring_Wheat', 'Durum_Wheat', 'Alfalfa', 'Barley',
+         'Peas', 'Corn', 'Other_Hay/Non_Alfalfa', 'Lentils', 'Canola',
+         'Dry_Beans', 'Sugarbeets', 'Mustard', "Triticale", 'Potatoes',
+         'Safflower', 'Other_Small_Grains', 'Flaxseed', 'Oats', 'Millet',
+         'Soybeans']
+
+non_crop_names = set(s.lower() for s in non_crop)
+crop_names = set(s.lower() for s in crops)
 
 code_name = pd.read_csv("./data/cdl_codes_names.csv")
 codemapper = CodeMapper(code_name)
