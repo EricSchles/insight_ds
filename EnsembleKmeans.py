@@ -1,57 +1,120 @@
 # -*- coding: utf-8 -*-
 # @Author: C. Marcus Chuang
-# @Date:   2017-09-27 19:29:38
-# @Last Modified by:   C. Marcus Chuang
-# @Last Modified time: 2017-09-30 01:48:49
 
-from __future__ import division
+from __future__ import absolute_import, division, print_function
 import pandas as pd
 import numpy as np
 from collections import Counter
 from sklearn.utils import resample
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-# from sklearn.model_selection import train_test_split
-# from sklearn.metrics import classification_report
-# from sklearn.metrics import confusion_matrix
-# from sklearn.metrics import roc_auc_score
-# from sklearn.metrics import roc_curve, auc
-# from sklearn.metrics import fbeta_score
-# from sklearn.metrics import precision_recall_curve
-# from sklearn.metrics import recall_score, accuracy_score, precision_score
-
-
-class NotFittedError(Exception):
-    pass
 
 
 class KmeansLabeler(object):
+    """
+    Use some probes (samples with known label) and k-means clustering to label
+    unknown samples that are similar to the probes.
+    """
 
-    def __init__(self, k=2, n_jobs=3, **kwargs):
+    def __init__(self, k=2, n_jobs=1, **kwargs):
+        """
+        Initialization
+
+        Parameters
+        ----------
+        k : integer, optional (default=2)
+            number of clusters in k-means model
+
+        n_jobs : integer, optional (default=1)
+            The number of jobs to run in parallel for both `fit` and `predict`.
+            If -1, then the number of jobs is set to the number of cores.
+
+        **kwargs:
+            keyword arguments to be passed to `KMeans` model
+        """
         self.model = KMeans(n_clusters=k, n_jobs=n_jobs, **kwargs)
         self._is_fitted = False
 
     def fit(self, X, probes):
+        """
+        fit the model usng X and probes
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the training input samples (label unknown)
+
+        probes: array-like of shape = [n_probes, n_features]
+            the taining input probes whose labels are `True`
+
+        Returns
+        -------
+        None
+        """
         self.model.fit(X)
         probe_pred = self.model.predict(probes)
         class_count = Counter(probe_pred)
-        self.true_label = 1 * max(class_count, key=lambda x: class_count[x])
+        self.target_label = 1 * max(class_count, key=lambda x: class_count[x])
         self._is_fitted = True
 
         return
 
     def predict(self, X):
+        """
+        predict whether each sample in X is of the same label of probes
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the samples to be labeled
+
+        Returns
+        -------
+        pred : an 1-D boolean array
+
+        """
         if not self._is_fitted:
             raise NotFittedError("This model has not been fitted yet")
-        pred = self.model.predict(X)
+        pred = (self.model.predict(X) == self.target_label)
 
-        return pred == self.true_label
+        return pred
+
+    def fit_and_predict(self, X, probes):
+        """
+        fit and predict the label of X using X and probes
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the training input samples (label unknown)
+
+        probes: array-like of shape = [n_probes, n_features]
+            the taining input probes whose labels are `True`
+
+        Returns
+        -------
+        pred : an 1-D boolean array
+        """
+        self.fit(X, probes)
+        return self.predict(X)
 
 
 class EnsembleKmeansClassifier(object):
+    """
+    Use some probes (samples with known label) and ensemble of k-means models
+    to label (classifiy) unknown samples that are similar to the probes.
 
+    Labeling are based on majority votes from all the models.
+    For each model, both probes and the unknown samples are resampled by
+    bootstrap methods. In addition, a subset of the features are then randomly
+    selected for k-mean clustering.
+
+    """
     def __init__(self, k=2, n_estimators=50, max_features=5, min_features=2,
                  scale_features=True, verbose=0, random_state=None, **kwargs):
+        """
+
+        """
 
         # to do: assert max > min
         self.n_estimators = n_estimators
@@ -79,7 +142,8 @@ class EnsembleKmeansClassifier(object):
 
         for i, model in enumerate(self.models):
             if self.verbose:
-                print("Model #  {}  / {}".format(i+1, self.n_estimators))
+                if i == 0 or (i+1) % (self.n_estimators//10) == 0:
+                    print("Model #  {}  / {}".format(i+1, self.n_estimators))
             feat_ind = self._select_features(n_cols=X_copy.shape[1])
             # print(feat_ind)
             self.feature_ind.append(feat_ind)
@@ -150,8 +214,10 @@ class EnsembleKmeansClassifier(object):
 
         for model, feat_ind in zip(self.models, self.feature_ind):
             pred = model.predict(self._slicing_col(X_copy, feat_ind))
-            # pred = (pred == model.true_label)
             predicted.append(pred)
 
         return np.array(predicted)
 
+
+class NotFittedError(Exception):
+    pass
