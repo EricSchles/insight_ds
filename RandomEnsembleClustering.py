@@ -16,7 +16,7 @@ class KmeansLabeler(object):
     unknown samples that are similar to the probes.
     """
 
-    def __init__(self, k=2, n_jobs=1, **kwargs):
+    def __init__(self, k=2, n_jobs=-2, **kwargs):
         """
         Initialization
 
@@ -99,7 +99,8 @@ class KmeansLabeler(object):
         return self.predict(X)
 
 
-class EnsembleKmeansClassifier(object):
+class RandomClusteringClassifier(object):
+# class EnsembleKmeansClassifier(object):
     """
     Use some probes (samples with known label) and ensemble of k-means models
     to label (classifiy) unknown samples that are similar to the probes.
