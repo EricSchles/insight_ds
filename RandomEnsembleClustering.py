@@ -191,8 +191,8 @@ class RandomClusteringClassifier(object):
         self.k = k
         if voting_rule not in ("soft", "hard"):
             raise ValueError
-        # hard: 0 or 1 for prediction in each individual modes
-        # soft: proba from each individual models
+        # hard: 0 or 1 for the prediction in each individual model
+        # soft: proba from each individual model
         self.voting_rule = voting_rule
         if random_state:
             self.np_random = np.random.RandomState(random_state)
