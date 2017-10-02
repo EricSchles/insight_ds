@@ -60,8 +60,8 @@ class KmeansLabeler(object):
         return
 
     def predict_proba(self, X):
-        """ Predict the probablility of each sample in X is of the same label
-            of probes.
+        """ Predict the probablility of each sample in X being of the same
+            label as the probes.
 
         Probability is calculated based on the percentage of probes in a
         given cluster
@@ -74,6 +74,10 @@ class KmeansLabeler(object):
         Returns
         -------
         proba : an 1-D array
+
+        Raise
+        -----
+        NotFittedError: when calling predict_proba before fitting
 
         """
         if not self._is_fitted:
@@ -96,6 +100,9 @@ class KmeansLabeler(object):
         -------
         pred : an 1-D boolean array
 
+        Raise
+        -----
+        NotFittedError: when calling predict_proba before fitting
         """
         if not self._is_fitted:
             raise NotFittedError("This model has not been fitted yet")
@@ -131,7 +138,7 @@ class RandomClusteringClassifier(object):
 
     Labeling are based on the majority vote from all the models.
     For each model, both the probes and the unknown samples are resampled by
-    bootstrap methods. In addition, for each k-means clustering model, the 
+    bootstrap methods. In addition, for each k-means clustering model, the
     features used are a randomly selected subset from all features.
     """
 
@@ -160,8 +167,8 @@ class RandomClusteringClassifier(object):
             used to scale the each feature based on the data in `X`. The same
             scaling will be applied to `probes` and the test data
 
-        voting_rule: string, optional (default=hard)
-            available: `hard` and `soft`
+        voting_rule: string, optional (default="hard")
+            available: "hard and "soft"
             The voting rules for ensemble prediction.
             Hard: prediction from each model is either 0 (False) or 1 (True)
             Soft: prediction from each model is the probability (between 0 & 1)
@@ -182,7 +189,9 @@ class RandomClusteringClassifier(object):
         self.k = k
         if voting_rule not in ("soft", "hard"):
             raise ValueError
-        self.voting_rule = voting_rule  # hard: 0-1, soft: proba from each md
+        # hard: 0 or 1 for prediction in each individual modes
+        # soft: proba from each individual models
+        self.voting_rule = voting_rule
         if random_state:
             self.np_random = np.random.RandomState(random_state)
         else:
@@ -191,8 +200,26 @@ class RandomClusteringClassifier(object):
         self._kmean_kwargs = kwargs
 
     def fit(self, X, probes, X_test=None, Y_test=None):
+        """ Fit the model usng X and probes
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the training input samples (label unknown)
+
+        probes: array-like of shape = [n_probes, n_features]
+            the taining input probes whose labels are `True`
+
+        Returns
+        -------
+        None
+
+        To do
+        -----
         # to do: add an option to predict and output results for each model
         #        or predict on oob samples
+        """
+
         self.models = [KmeansLabeler(k=self.k, **self._kmean_kwargs)
                        for i in range(self.n_estimators)]
         self.feature_ind = []
@@ -210,13 +237,35 @@ class RandomClusteringClassifier(object):
             X_subset = self._slicing_col(X_resample, feat_ind)
             probes_subset = self._slicing_col(probes_resample, feat_ind)
             model.fit(X_subset, probes_subset)
-            # if y: print res
 
         self._is_fitted = True
 
         return
 
     def predict_proba(self, X, test_set=None):
+        """ Predict the probablility of each sample in X being of the same
+            label as the probes.
+
+        Probability is calculated based on the majority vote from the
+        prediction from each individual model
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the samples to be labeled
+
+        Returns
+        -------
+        proba : an 1-D array
+
+        Raise
+        -----
+        NotFittedError: when calling predict_proba before fitting
+
+        """
+        if not self._is_fitted:
+            raise NotFittedError("This model has not been fitted yet")
+
         y_pred = self._predict(X, test_set=None)
         y_ensemble = y_pred.sum(axis=0)
         y_proba = y_ensemble / len(y_pred)
@@ -224,14 +273,35 @@ class RandomClusteringClassifier(object):
         return y_proba
 
     def predict(self, X, test_set=None, threshold=0.5):
+        """ Predict whether each sample in X is of the same label of probes
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the samples to be labeled
+
+        threshold: float in the interval of [0, 1], optional (default=0.5)
+            threshold for determing if a sample is `True` (proba >= threshold)
+
+        Returns
+        -------
+        pred : an 1-D boolean array
+
+        Raise
+        -----
+        NotFittedError: when calling predict before fitting
+        """
+
         y_proba = self.predict_proba(X, test_set=test_set)
 
         return y_proba >= threshold
 
     def _bootstrap(self, *arr):
+        """ bootstrap resampling from the array """
         return resample(*arr, replace=True, random_state=self.np_random)
 
     def _slicing_col(self, X, col_ind):
+        """ select columns of the given indices"""
         if isinstance(X, pd.DataFrame):
             return X.iloc[:, col_ind]
 
@@ -242,7 +312,7 @@ class RandomClusteringClassifier(object):
         randomly select features
 
         Returns:
-            a sorted numpy array of selected column indices
+            selected_col_ind: a sorted numpy array of selected column indices
         """
         max_features = min(n_cols, self.max_features)
         n_fea = self.np_random.randint(self.min_features, max_features+1)
@@ -253,6 +323,9 @@ class RandomClusteringClassifier(object):
         return selected_col_ind
 
     def _process(self, X, probes):
+        """ Standardize features by removing the mean and scaling to unit 
+            variance. Apply to both the data and the probes
+        """
         if self.scale_features:
             self.scaler = StandardScaler()
             X_copy = self.scaler.fit_transform(X)
