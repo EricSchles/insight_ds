@@ -129,12 +129,12 @@ class RandomClusteringClassifier(object):
     Use some probes (samples with known label) and ensemble of k-means models
     to label (classifiy) unknown samples that are similar to the probes.
 
-    Labeling are based on majority votes from all the models.
-    For each model, both probes and the unknown samples are resampled by
-    bootstrap methods. In addition, a subset of the features are then randomly
-    selected for k-mean clustering.
-
+    Labeling are based on the majority vote from all the models.
+    For each model, both the probes and the unknown samples are resampled by
+    bootstrap methods. In addition, for each k-means clustering model, the 
+    features used are a randomly selected subset from all features.
     """
+
     def __init__(self, k=2, n_estimators=50, max_features=5, min_features=2,
                  scale_features=True, verbose=0, random_state=None,
                  voting_rule="hard", **kwargs):
