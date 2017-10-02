@@ -43,5 +43,5 @@ The classifiers use similar syntax as `sklearn`'s classifiers with methods such 
 
 For more information about the classifier, please see the docstring.
 
-For more information about the project, see the [blog post] (https://medium.com/@marcus.chchuang/insight-project-ebe38a8bf9ee)
+For more information about the project, see the [blog post](https://medium.com/@marcus.chchuang/insight-project-ebe38a8bf9ee)
 
