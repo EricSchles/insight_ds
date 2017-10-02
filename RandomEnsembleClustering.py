@@ -17,8 +17,7 @@ class KmeansLabeler(object):
     """
 
     def __init__(self, k=2, n_jobs=-2, **kwargs):
-        """
-        Initialization
+        """ Initialization
 
         Parameters
         ----------
@@ -36,8 +35,7 @@ class KmeansLabeler(object):
         self._is_fitted = False
 
     def fit(self, X, probes):
-        """
-        fit the model usng X and probes
+        """ Fit the model usng X and probes
 
         Parameters
         ----------
@@ -54,14 +52,40 @@ class KmeansLabeler(object):
         self.model.fit(X)
         probe_pred = self.model.predict(probes)
         class_count = Counter(probe_pred)
+        self.class_proba = {k: v/len(probes) for k, v in class_count.items()}
         self.target_label = 1 * max(class_count, key=lambda x: class_count[x])
         self._is_fitted = True
+        # print(self.class_proba)
 
         return
 
-    def predict(self, X):
+    def predict_proba(self, X):
+        """ Predict the probablility of each sample in X is of the same label
+            of probes.
+
+        Probability is calculated based on the percentage of probes in a
+        given cluster
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the samples to be labeled
+
+        Returns
+        -------
+        proba : an 1-D array
+
         """
-        predict whether each sample in X is of the same label of probes
+        if not self._is_fitted:
+            raise NotFittedError("This model has not been fitted yet")
+        pred = self.model.predict(X)
+        proba = np.array([self.class_proba.get(x, 0) for x in pred])
+        # proba = np.array(map(lambda x: self.class_proba[x], pred))
+
+        return proba
+
+    def predict(self, X):
+        """ Predict whether each sample in X is of the same label of probes
 
         Parameters
         ----------
@@ -75,13 +99,13 @@ class KmeansLabeler(object):
         """
         if not self._is_fitted:
             raise NotFittedError("This model has not been fitted yet")
+        # proba = self.predict_proba(X)
         pred = (self.model.predict(X) == self.target_label)
 
         return pred
 
     def fit_and_predict(self, X, probes):
-        """
-        fit and predict the label of X using X and probes
+        """ Fit and predict the label of X using X and probes
 
         Parameters
         ----------
@@ -96,11 +120,11 @@ class KmeansLabeler(object):
         pred : an 1-D boolean array
         """
         self.fit(X, probes)
+
         return self.predict(X)
 
 
 class RandomClusteringClassifier(object):
-# class EnsembleKmeansClassifier(object):
     """
     Use some probes (samples with known label) and ensemble of k-means models
     to label (classifiy) unknown samples that are similar to the probes.
@@ -112,12 +136,42 @@ class RandomClusteringClassifier(object):
 
     """
     def __init__(self, k=2, n_estimators=50, max_features=5, min_features=2,
-                 scale_features=True, verbose=0, random_state=None, **kwargs):
+                 scale_features=True, verbose=0, random_state=None,
+                 voting_rule="hard", **kwargs):
         """
+        Parameters
+        ----------
+        k : integer, optional (default=2)
+            number of clusters in k-means model
 
-        """
+        n_estimators: integer, optional (default=50)
+            number of k-means model to run
+
+        max_features: integer, optional (default=5)
+            maximum number of features to use in each model; would be
+            overwritten if max_features is greater than number of features in
+            the data.
+
+        min_features: integer, optional (default=2)
+            minimum number of features to use in each model
+
+        scale_features: boolean, optional (default=True)
+            whether to scale each features. If true, a StandardScaler will be
+            used to scale the each feature based on the data in `X`. The same
+            scaling will be applied to `probes` and the test data
+
+        voting_rule: string, optional (default=hard)
+            available: `hard` and `soft`
+            The voting rules for ensemble prediction.
+            Hard: prediction from each model is either 0 (False) or 1 (True)
+            Soft: prediction from each model is the probability (between 0 & 1)
+            The final prediction is the sum of the prediction from all models
+
 
         # to do: assert max > min
+
+        """
+
         self.n_estimators = n_estimators
         self.max_features = max_features
         self.min_features = min_features
@@ -126,6 +180,9 @@ class RandomClusteringClassifier(object):
         self._is_fitted = False
         self.random_state = random_state
         self.k = k
+        if voting_rule not in ("soft", "hard"):
+            raise ValueError
+        self.voting_rule = voting_rule  # hard: 0-1, soft: proba from each md
         if random_state:
             self.np_random = np.random.RandomState(random_state)
         else:
@@ -168,6 +225,7 @@ class RandomClusteringClassifier(object):
 
     def predict(self, X, test_set=None, threshold=0.5):
         y_proba = self.predict_proba(X, test_set=test_set)
+
         return y_proba >= threshold
 
     def _bootstrap(self, *arr):
@@ -176,6 +234,7 @@ class RandomClusteringClassifier(object):
     def _slicing_col(self, X, col_ind):
         if isinstance(X, pd.DataFrame):
             return X.iloc[:, col_ind]
+
         return X[:, col_ind]
 
     def _select_features(self, n_cols):
@@ -186,7 +245,7 @@ class RandomClusteringClassifier(object):
             a sorted numpy array of selected column indices
         """
         max_features = min(n_cols, self.max_features)
-        n_fea = self.np_random.randint(self.min_features, max_features)
+        n_fea = self.np_random.randint(self.min_features, max_features+1)
         selected_col_ind = self.np_random.choice(range(n_cols),
                                                  size=n_fea, replace=False)
         selected_col_ind.sort()
@@ -214,7 +273,11 @@ class RandomClusteringClassifier(object):
         predicted = []
 
         for model, feat_ind in zip(self.models, self.feature_ind):
-            pred = model.predict(self._slicing_col(X_copy, feat_ind))
+            if self.voting_rule == "hard":
+                pred = model.predict(self._slicing_col(X_copy, feat_ind))
+            else:
+                pred = model.predict_proba(self._slicing_col(X_copy, feat_ind))
+
             predicted.append(pred)
 
         return np.array(predicted)
