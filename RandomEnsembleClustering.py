@@ -52,7 +52,9 @@ class KmeansLabeler(object):
         self.model.fit(X)
         probe_pred = self.model.predict(probes)
         class_count = Counter(probe_pred)
+        # use the percentage of the probes in each cluster as the probability
         self.class_proba = {k: v/len(probes) for k, v in class_count.items()}
+        # assign the highest one as the target_label
         self.target_label = 1 * max(class_count, key=lambda x: class_count[x])
         self._is_fitted = True
         # print(self.class_proba)
@@ -222,8 +224,8 @@ class RandomClusteringClassifier(object):
 
         self.models = [KmeansLabeler(k=self.k, **self._kmean_kwargs)
                        for i in range(self.n_estimators)]
-        self.feature_ind = []
-        X_copy, probes_copy = self._process(X, probes)
+        self.feature_ind = []  # indices of the features used in each model
+        X_copy, probes_copy = self._process(X, probes)  # preprocess
 
         for i, model in enumerate(self.models):
             if self.verbose:
@@ -323,7 +325,7 @@ class RandomClusteringClassifier(object):
         return selected_col_ind
 
     def _process(self, X, probes):
-        """ Standardize features by removing the mean and scaling to unit 
+        """ Standardize features by removing the mean and scaling to unit
             variance. Apply to both the data and the probes
         """
         if self.scale_features:
