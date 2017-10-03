@@ -13,7 +13,7 @@ class KmeansLabeler(object):
     """
 ``` 
 
-It use k-means clustering to cluster the data into 2 different clusters and then use the number of **probes** in each cluster to determine which cluster is `True`. In 2-D space, it looks like this:
+It uses k-means clustering to cluster the data into 2 different clusters and then use the number of **probes** in each cluster to determine which cluster is `True`. In 2-D space, it looks like this:
 ![alt text](https://cdn-images-1.medium.com/max/800/1*j5B0e_QLT-n6r6oAuzoG3w.png)
 
 To reduce the variance of the prediction, I further employed **Bagging**:
