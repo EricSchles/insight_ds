@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 class KmeansLabeler(object):
     """
-    Use some probes (samples with known label) and k-means clustering to label
+    Use some probes (samples with `True` label) and k-means clustering to label
     unknown samples that are similar to the probes.
     """
 
@@ -136,7 +136,7 @@ class KmeansLabeler(object):
 
 class RandomClusteringClassifier(object):
     """
-    Use some probes (samples with known label) and ensemble of k-means models
+    Use some probes (samples with `True` label) and ensemble of k-means models
     to label (classifiy) unknown samples that are similar to the probes.
 
     Labeling are based on the majority vote from all the models.
@@ -202,7 +202,7 @@ class RandomClusteringClassifier(object):
         kwargs["random_state"] = random_state
         self._kmean_kwargs = kwargs
 
-    def fit(self, X, probes, X_test=None, Y_test=None):
+    def fit(self, X, probes):
         """ Fit the model usng X and probes
 
         Parameters
@@ -245,7 +245,7 @@ class RandomClusteringClassifier(object):
 
         return
 
-    def predict_proba(self, X, test_set=None):
+    def predict_proba(self, X):
         """ Predict the probablility of each sample in X being of the same
             label as the probes.
 
@@ -269,13 +269,13 @@ class RandomClusteringClassifier(object):
         if not self._is_fitted:
             raise NotFittedError("This model has not been fitted yet")
 
-        y_pred = self._predict(X, test_set=None)
+        y_pred = self._predict(X)
         y_ensemble = y_pred.sum(axis=0)
         y_proba = y_ensemble / len(y_pred)
 
         return y_proba
 
-    def predict(self, X, test_set=None, threshold=0.5):
+    def predict(self, X, threshold=0.5):
         """ Predict whether the label of each sample in X is the same as
             that of the majority of the probes
 
@@ -296,7 +296,7 @@ class RandomClusteringClassifier(object):
         NotFittedError: when calling predict before fitting
         """
 
-        y_proba = self.predict_proba(X, test_set=test_set)
+        y_proba = self.predict_proba(X)
 
         return y_proba >= threshold
 
@@ -385,7 +385,7 @@ class RandomClusteringClassifier(object):
 
         return X.copy(), probes.copy()
 
-    def _predict(self, X, test_set=None):
+    def _predict(self, X):
         """
         """
         if not self._is_fitted:
