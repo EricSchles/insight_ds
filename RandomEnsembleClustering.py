@@ -16,7 +16,7 @@ class KmeansLabeler(object):
     unknown samples that are similar to the probes.
     """
 
-    def __init__(self, k=2, n_jobs=-2, **kwargs):
+    def __init__(self, k=2, n_jobs=-1, **kwargs):
         """ Initialization
 
         Parameters
@@ -91,7 +91,8 @@ class KmeansLabeler(object):
         return proba
 
     def predict(self, X):
-        """ Predict whether each sample in X is of the same label of probes
+        """ Predict whether the label of each sample in X is the same as
+            that of the majority of the probes
 
         Parameters
         ----------
@@ -275,7 +276,8 @@ class RandomClusteringClassifier(object):
         return y_proba
 
     def predict(self, X, test_set=None, threshold=0.5):
-        """ Predict whether each sample in X is of the same label of probes
+        """ Predict whether the label of each sample in X is the same as
+            that of the majority of the probes
 
         Parameters
         ----------
@@ -299,11 +301,34 @@ class RandomClusteringClassifier(object):
         return y_proba >= threshold
 
     def _bootstrap(self, *arr):
-        """ bootstrap resampling from the array """
+        """ bootstrap resampling from the array
+
+        Parameters
+        ----------
+        *arr: a series of array-like object
+
+        Returns
+        -------
+        resalpled array (with replacement) with the same sample size as the
+        original array
+        """
         return resample(*arr, replace=True, random_state=self.np_random)
 
     def _slicing_col(self, X, col_ind):
-        """ select columns of the given indices"""
+        """ select columns of the given indices
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the samples to be labeled
+
+        col_ind: array-like. the indices of the columns to be used
+
+        Return
+        ------
+        a slice of X with the desired columns
+        """
+
         if isinstance(X, pd.DataFrame):
             return X.iloc[:, col_ind]
 
@@ -313,25 +338,49 @@ class RandomClusteringClassifier(object):
         """
         randomly select features
 
+        Parameters
+        ----------
+        n_cols: integer
+            number of columns to be selected (withou duplicates)
+
         Returns:
             selected_col_ind: a sorted numpy array of selected column indices
         """
+
         max_features = min(n_cols, self.max_features)
         n_fea = self.np_random.randint(self.min_features, max_features+1)
         selected_col_ind = self.np_random.choice(range(n_cols),
                                                  size=n_fea, replace=False)
-        selected_col_ind.sort()
+        selected_col_ind.sort()  # sort index, optional
 
         return selected_col_ind
 
     def _process(self, X, probes):
-        """ Standardize features by removing the mean and scaling to unit
-            variance. Apply to both the data and the probes
+        """ Preporcess data.
+            if scale_features is True:
+                Standardize features by removing the mean and scaling to unit
+                variance. Apply to both the data and the probes. This scaler
+                will be applied to the test data as well.
+            otherwise simply return a copy of X and probes
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the training input samples (label unknown)
+
+        probes: array-like of shape = [n_probes, n_features]
+            the taining input probes whose labels are `True`
+
+        Return
+        ------
+        X_copy, probes_copy: preprocessed X and probes
         """
+
         if self.scale_features:
             self.scaler = StandardScaler()
             X_copy = self.scaler.fit_transform(X)
             probes_copy = self.scaler.transform(probes)
+
             return X_copy, probes_copy
 
         return X.copy(), probes.copy()
