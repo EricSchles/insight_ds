@@ -8,7 +8,7 @@ For this project, I developed this method based on k-means clustering with `k=2`
 ```
 class KmeansLabeler(object):
     """
-    Use some probes (samples with known label) and k-means clustering to label
+    Use some probes (samples with `True` label) and k-means clustering to label
     unknown samples that are similar to the probes.
     """
 ``` 
@@ -21,7 +21,7 @@ To reduce the variance of the prediction, I further employed **Bagging**:
 ```
 class RandomClusteringClassifier(object):
     """
-    Use some probes (samples with known label) and ensemble of k-means models
+    Use some probes (samples with `True` label) and ensemble of k-means models
     to label (classifiy) unknown samples that are similar to the probes.
 
     Labeling are based on the majority vote from all the models.
