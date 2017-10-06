@@ -269,7 +269,7 @@ class RandomClusteringClassifier(object):
         if not self._is_fitted:
             raise NotFittedError("This model has not been fitted yet")
 
-        y_pred = self._predict(X)
+        y_pred = self._predict(X)  # prediction from each individual model
         y_ensemble = y_pred.sum(axis=0)
         y_proba = y_ensemble / len(y_pred)
 
@@ -386,14 +386,28 @@ class RandomClusteringClassifier(object):
         return X.copy(), probes.copy()
 
     def _predict(self, X):
-        """
+        """ private method for performing ensemble of k-means models
+
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            the training input samples (label unknown)
+
+        Returns
+        -------
+        predicted: a numpy array of shape = [n_estimators, n_samples]
+            The prediction from each individual model.
+            If voting_rule is `hard`, it is a boolean array
+            If voting_rule is `soft`, each element is the probability (0 to 1)
         """
         if not self._is_fitted:
             raise NotFittedError("This model has not been fitted yet")
+
         if self.scale_features:
             X_copy = self.scaler.transform(X)
         else:
             X_copy = X.copy()
+
         predicted = []
 
         for model, feat_ind in zip(self.models, self.feature_ind):
