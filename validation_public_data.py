@@ -75,11 +75,11 @@ def validate(data, n_probes=20, probes=None, n_estimators=50,
                           random_state=probe_random_state)
 
     n_probes = len(probes)
-    # print out some conditions for the experiments
+    # print out some conditions of the experiments
     n_unknown = len(train_x) - n_probes
     message = "Fitting {} models with {} 'True' samples and ".format(
               n_estimators, n_probes)
-    message += "{} unknown samples \n".format(n_unknown)
+    message += "{} unlabelled samples \n".format(n_unknown)
     print(message)
 
     # initialize the RandomClusteringClassifier
@@ -94,7 +94,8 @@ def validate(data, n_probes=20, probes=None, n_estimators=50,
     pred = rcc.predict(test_x)
     proba = rcc.predict_proba(test_x)  # for other metrics
 
-    print("Validating on {} samples in the test set".format(len(test_x)))
+    print("="*30)
+    print("\nValidating on {} samples in the test set\n\n".format(len(test_x)))
     print_results(test_y, pred)  # print out some test results
 
     return {"y_true": test_y,
