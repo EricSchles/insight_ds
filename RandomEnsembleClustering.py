@@ -219,8 +219,9 @@ class RandomClusteringClassifier(object):
 
         To do
         -----
-        # to do: add an option to predict and output results for each model
-        #        or predict on oob samples
+        Add "Parallel" computation (compatible with sklearn styles) for
+        ensemble models. (take parameter `n_jobs`)
+
         """
 
         self.models = [KmeansLabeler(k=self.k, **self._kmean_kwargs)
@@ -301,7 +302,7 @@ class RandomClusteringClassifier(object):
         return y_proba >= threshold
 
     def _bootstrap(self, *arr):
-        """ bootstrap resampling from the array
+        """ Private method for bootstrap resampling from the array(s)
 
         Parameters
         ----------
@@ -315,7 +316,7 @@ class RandomClusteringClassifier(object):
         return resample(*arr, replace=True, random_state=self.np_random)
 
     def _slicing_col(self, X, col_ind):
-        """ select columns of the given indices
+        """ Private method for selecting columns of the given indices
 
         Parameters
         ----------
@@ -335,8 +336,7 @@ class RandomClusteringClassifier(object):
         return X[:, col_ind]
 
     def _select_features(self, n_cols):
-        """
-        randomly select features
+        """ Private method for randomly selecting features
 
         Parameters
         ----------
@@ -356,7 +356,7 @@ class RandomClusteringClassifier(object):
         return selected_col_ind
 
     def _process(self, X, probes):
-        """ Preporcess data.
+        """ Private method for preporcessing data.
             if scale_features is True:
                 Standardize features by removing the mean and scaling to unit
                 variance. Apply to both the data and the probes. This scaler
